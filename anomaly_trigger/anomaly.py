@@ -11,20 +11,33 @@ from multiprocessing.pool import *
 import promethues
 
 def init():
-    #add the config
-    config_path = "/root/DB-GPT/config/tool_config.yaml"
-    with open(config_path, 'r') as config_file:
-        config = yaml.safe_load(config_file) 
-    db_args =DBArgs('pgsql', config,application_name="anomaly")
+    # add the config
+    # config_path = "/root/DB-GPT/config/tool_config.yaml"
+    # with open(config_path, 'r') as config_file:
+    #     config = yaml.safe_load(config_file)
+    config = {
+        "dbname":"sysbench",  # 连接到默认的 "postgres" 数据库
+        "user":"test",  # 替换为你的数据库用户名
+        "password":"Test123_456",  # 替换为你的数据库密码
+        "host":"localhost",  # 替换为你的数据库主机地址
+        "port": 5432,
+        # "dbtype": "postgresql"
+        }
+    db_args = DBArgs("postgresql", config, application_name="anomaly")
     return db_args
 
 
 def restart_init():
-    #add the config
-    config_path = "/root/DB-GPT/config/tool_config.yaml"
-    with open(config_path, 'r') as config_file:
-        config = yaml.safe_load(config_file) 
-    db_args =DBArgs('pgsql', config,application_name="restart")
+    # add the config
+    config = {
+        "dbname": "sysbench",  # 连接到默认的 "postgres" 数据库
+        "user": "test",  # 替换为你的数据库用户名
+        "password": "Test123_456",  # 替换为你的数据库密码
+        "host": "localhost",  # 替换为你的数据库主机地址
+        "port": 5432,
+        # "dbtype": "postgresql"
+    }
+    db_args = DBArgs("postgresql", config, application_name="restart")
     return db_args
 
 def restart():
@@ -33,46 +46,47 @@ def restart():
     db.execute_sqls(sql)
 
 def restart_postgresql():
-    host= 'xxx'
-    port= 22
-    user= 'xxx'
-    password='xxx'
-    # 创建SSH客户端实例
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    pass
+    # host = "localhost"
+    # port= 22
+    # user= 'root'
+    # password='a86235660'
+    # # 创建SSH客户端实例
+    # ssh = paramiko.SSHClient()
+    # ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try:
-        # 连接到远程服务器
-        ssh.connect(hostname=host, port=port, username=user, password=password)
-        
-        # 执行PostgreSQL重启命令
-        # 注意：根据您服务器的配置，这些命令可能需要调整
-        stdin, stdout, stderr = ssh.exec_command("sudo systemctl restart postgresql-12.service")
-        exit_status = stdout.channel.recv_exit_status()  # 阻塞直到命令执行完成
+    # try:
+    #     # 连接到远程服务器
+    #     ssh.connect(hostname=host, port=port, username=user, password=password)
 
-        if exit_status == 0:
-            print("PostgreSQL服务已重启")
-        else:
-            print("重启命令执行失败，错误信息：", stderr.read().decode())
-    except Exception as e:
-        print(f"SSH连接或命令执行出错：{e}")
-    finally:
-        # 关闭SSH连接
-        ssh.close()
-#create a table
+    #     # 执行PostgreSQL重启命令
+    #     # 注意：根据您服务器的配置，这些命令可能需要调整
+    #     stdin, stdout, stderr = ssh.exec_command("sudo systemctl restart postgresql-12.service")
+    #     exit_status = stdout.channel.recv_exit_status()  # 阻塞直到命令执行完成
+
+    #     if exit_status == 0:
+    #         print("PostgreSQL服务已重启")
+    #     else:
+    #         print("重启命令执行失败，错误信息：", stderr.read().decode())
+    # except Exception as e:
+    #     print(f"SSH连接或命令执行出错：{e}")
+    # finally:
+    #     # 关闭SSH连接
+    #     ssh.close()
+# create a table
 def create_table(table_name,colsize, ncolumns):
     db=Database(init())
     column_definitions = ', '.join(f'name{i} varchar({colsize})' for i in range(ncolumns))
     creat_sql = f'CREATE TABLE {table_name} (id int, {column_definitions}, time timestamp);'
     db.execute_sqls(creat_sql)
 
-#delete the table
+# delete the table
 def delete_table(table_name):
     db=Database(init())
     delete_sql=f'DROP TABLE if exists {table_name}'
     db.execute_sqls(delete_sql)
 
-#print the current time
+# print the current time
 def print_start_time(cmd):
     log_file = open("dataset.txt", "a")
     current_time = datetime.datetime.now()
@@ -143,11 +157,11 @@ def insert_large_data(threads,duration,ncolumns,nrows,colsize,table_name='table1
     delete_table(table_name)
 
 
-
 '''missing_index'''
 def missing_index(threads,duration,ncolumns,nrows,colsize,table_name='table1'):
     cmd=f"python anomaly_trigger/main.py --anomaly MISSING_INDEXES --threads {threads} --ncolumn {ncolumns} --nrow {nrows} --colsize {colsize}"
     #create a new table
+    
     db=Database(init())
     delete_table(table_name)
     create_table(table_name,colsize, ncolumns)
@@ -175,7 +189,6 @@ def missing_index(threads,duration,ncolumns,nrows,colsize,table_name='table1'):
     #delete the table
     delete_table(table_name)
     #print the end time
-
 
 
 '''lock_contention'''
@@ -209,7 +222,6 @@ def lock_contention(threads,duration,ncolumns,nrows,colsize,table_name='table1')
     
     #delete the table
     delete_table(table_name)
-
 
 
 '''vacuum'''
@@ -288,8 +300,6 @@ def redundent_index(threads,duration,ncolumns,nrows,colsize,nindex,table_name='t
     delete_table(table_name)
 
 
-
-
 '''io_contention'''
 def io_contention():
     cmd=f"python anomaly_trigger/main.py --anomaly INSERT_LARGE_DATA,IO_CONTENTION"
@@ -310,7 +320,7 @@ def io_contention():
     cpu,mem=promethues.restart_decision()
     if((cpu>50)|(mem>50)):
         restart_postgresql()
-    
+
 
 '''fetch_large_data'''
 def fetch_large_data():
@@ -331,7 +341,6 @@ def fetch_large_data():
     
     except Exception as e:
         print(f"exception: {e}")
-
 
 
 '''cpu_contention'''
@@ -372,15 +381,3 @@ def lock(table_name, ncolumns, colsize, duration, nrows):
         conn.commit()
         conn.close()
     write_amomaly_sql_to_file_a_line(lock_contention)
-
-    
-
-
-
-
-
-
-
-
-
-
